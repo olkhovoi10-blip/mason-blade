@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MASON &amp; BLADE — Premium Barbering in Zürich</title>
+<meta name="description" content="MASON & BLADE — Premium barbering in the heart of Zürich. Fictional concept, single-file build." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Jost:ital,wght@0,200;0,300;0,400;0,500;0,600;1,300;1,400&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/framer-motion@11.18.0/dist/framer-motion.js"></script>
+<script src="https://unpkg.com/lenis@1.3.26/dist/lenis.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        obsidian: '#0C0A09', espresso: '#141210', surface: '#1A1715', 'surface-2': '#221F1C',
+        brass: '#C5A059', 'brass-light': '#D4AF37', cream: '#F5F2EB', beige: '#D6CEBF'
+      },
+      fontFamily: {
+        display: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+        sans: ['Jost', 'Avenir', 'sans-serif']
+      },
+      letterSpacing: { swiss: '0.28em' }
+    }
+  }
+};
+</script>
+<style>
+html { background: #0C0A09; }
+body { margin: 0; font-family: 'Jost', Avenir, sans-serif; background: #0C0A09; color: #F5F2EB; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+::selection { background: #C5A059; color: #0C0A09; }
+::-webkit-scrollbar { width: 9px; }
+::-webkit-scrollbar-track { background: #0C0A09; }
+::-webkit-scrollbar-thumb { background: #2A2521; border: 2px solid #0C0A09; }
+::-webkit-scrollbar-thumb:hover { background: #C5A059; }
+.grain-overlay { position: fixed; inset: 0; z-index: 90; pointer-events: none; opacity: .05; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.frame-cut { clip-path: polygon(0 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%); }
+.accent-italic { font-style: italic; font-weight: 500; color: #C5A059; }
+.link-sweep { position: relative; }
+.link-sweep::after { content: ''; position: absolute; left: 0; bottom: -4px; height: 1px; width: 100%; background: #C5A059; transform: scaleX(0); transform-origin: right; transition: transform .45s cubic-bezier(.22,1,.36,1); }
+.link-sweep:hover::after { transform: scaleX(1); transform-origin: left; }
+.cal-day { font-variant-numeric: tabular-nums; }
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.animate-marquee { animation: marquee 46s linear infinite; }
+@keyframes kenburns { from { transform: scale(1.14); } to { transform: scale(1); } }
+.animate-kenburns { animation: kenburns 8s cubic-bezier(.22,1,.36,1) forwards; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+window.addEventListener("DOMContentLoaded", function () {
+  var src = document.querySelector('script[type="text/jsx"]').textContent;
+  var code = Babel.transform(src, { presets: [["react", { runtime: "classic" }]] }).code;
+  window.eval(code);
+});
+</script>
+
+<script type="text/jsx">
+const { useState, useEffect, useRef, useCallback } = React;
+const { motion, AnimatePresence, useScroll, useTransform } = Motion;
+const EASE = [0.22, 1, 0.36, 1];
+
+/* ---------- data ---------- */
+const SERVICES = [
+  { id: "classic-haircut", name: "Classic Haircut", price: "CHF 59", duration: "40 min", desc: "Tailored consultation, precision shear or clipper cut, hot lather neck shave and a styling finish." },
+  { id: "skin-fade", name: "Skin Fade", price: "CHF 69", duration: "45 min", desc: "Seamless zero blend down to the skin, sculpted silhouette and a razor-crisp lineup." },
+  { id: "haircut-and-beard", name: "Haircut & Beard", price: "CHF 89", duration: "60 min", desc: "A complete aesthetic: precision haircut, detailed beard sculpture, steam towel and oil treatment." },
+  { id: "beard-trim", name: "Beard Trim", price: "CHF 39", duration: "30 min", desc: "Length sculpting, cheek and neck straight-razor edging, finished with conditioning balm." },
+  { id: "royal-beard", name: "Royal Beard & Hot Towel", price: "CHF 49", duration: "35 min", desc: "Multi-stage hot eucalyptus towel, deep-lather straight razor shave and a cold towel close." },
+  { id: "head-shave", name: "Head Shave", price: "CHF 45", duration: "30 min", desc: "Soothing pre-shave oil, warm lather straight razor head shave and protective matte hydration." },
+  { id: "kids-haircut", name: "Kids Haircut", price: "CHF 39", duration: "30 min", desc: "Gentle, precise haircut and styling for young gentlemen up to 12 years old." },
+];
+const BARBERS = [
+  { id: "luca-moretti", name: "Luca Moretti", role: "Master Barber", bio: "Specialized in modern fades, scissor work and classic men's grooming.", languages: "English · German · Italian",
+    img: "https://images.pexels.com/photos/20302331/pexels-photo-20302331.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940" },
+  { id: "noah-keller", name: "Noah Keller", role: "Barber & Beard Specialist", bio: "Focused on precision fades, beard architecture and traditional hot towel grooming.", languages: "English · German · French",
+    img: "https://images.pexels.com/photos/8552627/pexels-photo-8552627.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940" },
+];
+const TIME_SLOTS = ["10:00", "10:45", "11:30", "13:00", "14:15", "15:00", "16:30", "17:15", "18:00"];
+const HERO_IMG = "https://images.pexels.com/photos/26832816/pexels-photo-26832816.jpeg?auto=compress&cs=tinysrgb&w=1920";
+const SIGNATURE_IMG = "https://images.unsplash.com/photo-1648221122279-5246dd0cf86c?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600";
+const MANIFESTO_IMG = "https://images.pexels.com/photos/13809242/pexels-photo-13809242.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
+const STUDIO_SHOTS = [
+  { title: "Bespoke Leather Chairs", caption: "Hand-stitched leather and brushed chrome hydraulic stations.", img: "https://images.unsplash.com/photo-1576168056582-0a851a87ab8e?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200" },
+  { title: "Warm Timber & Brick", caption: "Natural materials, acoustic calm and warm ambient light.", img: "https://images.unsplash.com/photo-1675599193990-33d71150902b?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200" },
+  { title: "Mirror Wall & Light", caption: "Generous spacing between stations, no chair faces a wall of noise.", img: "https://images.pexels.com/photos/3992850/pexels-photo-3992850.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940" },
+  { title: "The Chair", caption: "Every cut begins with an espresso and a quiet conversation.", img: "https://images.pexels.com/photos/12339159/pexels-photo-12339159.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940" },
+  { title: "In Service", caption: "Focused hands, steady blades, unhurried craft.", img: "https://images.unsplash.com/photo-1621645582931-d1d3e6564943?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200" },
+];
+const GALLERY = [
+  { title: "The Cut", img: "https://images.unsplash.com/photo-1647140655214-e4a2d914971f?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200" },
+  { title: "Skin Fade", img: "https://images.pexels.com/photos/39559325/pexels-photo-39559325.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940" },
+  { title: "Beard Architecture", img: "https://images.unsplash.com/photo-1599011176306-4a96f1516d4d?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200" },
+  { title: "Instruments", img: "https://images.unsplash.com/photo-1621605815971-fbc98d665033?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200" },
+  { title: "The Chair", img: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200" },
+  { title: "Morning Light", img: "https://images.unsplash.com/photo-1611313151697-d626e818dddf?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200" },
+  { title: "Hot Towel Ritual", img: "https://images.pexels.com/photos/8867486/pexels-photo-8867486.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940" },
+  { title: "The Finish", img: "https://images.pexels.com/photos/16098668/pexels-photo-16098668.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940" },
+  { title: "Atelierstrasse, 19:47", img: "https://images.pexels.com/photos/3998407/pexels-photo-3998407.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940" },
+];
+const GALLERY_SPANS = ["col-span-2 row-span-2","col-span-1 row-span-1","col-span-1 row-span-2","col-span-1 row-span-1","col-span-2 row-span-1","col-span-1 row-span-1","col-span-1 row-span-2","col-span-1 row-span-1","col-span-2 row-span-1"];
+const INSTAGRAM = [
+  { caption: "Skin fades & texture work", img: "https://images.unsplash.com/photo-1630827020718-3433092696e7?crop=entropy&cs=srgb&fm=jpg&q=85&w=800" },
+  { caption: "Beard contouring, straight razor", img: "https://images.unsplash.com/photo-1629189784191-9afdcbcb0398?crop=entropy&cs=srgb&fm=jpg&q=85&w=800" },
+  { caption: "Morning light at the studio", img: "https://images.unsplash.com/photo-1675599193990-33d71150902b?crop=entropy&cs=srgb&fm=jpg&q=85&w=800" },
+  { caption: "Luca shaping clean lines", img: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?crop=entropy&cs=srgb&fm=jpg&q=85&w=800" },
+  { caption: "Grooming shelf, first drawer", img: "https://images.unsplash.com/photo-1621607505833-616916c46a25?crop=entropy&cs=srgb&fm=jpg&q=85&w=800" },
+  { caption: "Finished looks, hot towel close", img: "https://images.pexels.com/photos/2521978/pexels-photo-2521978.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940" },
+];
+const TESTIMONIALS = [
+  { name: "Marco B.", role: "Architect, Zürich Enge", service: "Haircut & Beard", text: "The attention to detail is unmatched in Zurich. Noah understands head shape and beard lines better than anyone in town. Walking into Atelierstrasse feels like a calm retreat." },
+  { name: "Daniel R.", role: "Private Equity Partner, Paradeplatz", service: "Skin Fade", text: "Luca provides the sharpest skin fade with precision scissor work on top. Consistent, punctual, discreet — and an espresso that rivals the finest cafes in Milan." },
+  { name: "Julian S.", role: "Creative Director, Kreis 4", service: "Royal Beard & Hot Towel", text: "Not your standard loud barbershop with cheesy posters. Mason & Blade is pure Swiss quiet luxury — warm woods, Japanese blades, and zero fuss." },
+];
+const HOURS = [
+  { days: "Monday", hours: "Closed", closed: true },
+  { days: "Tuesday", hours: "09:00 – 19:00" },
+  { days: "Wednesday", hours: "09:00 – 19:00" },
+  { days: "Thursday", hours: "09:00 – 20:00" },
+  { days: "Friday", hours: "09:00 – 20:00" },
+  { days: "Saturday", hours: "09:00 – 18:00" },
+  { days: "Sunday", hours: "Closed", closed: true },
+];
+const CONTACT = { studio: "MASON & BLADE", street: "12 Atelierstrasse", city: "8004 Zürich", country: "Switzerland", phone: "+41 44 000 00 00", phoneHref: "tel:+41440000000", email: "hello@masonandblade.example" };
+
+/* ---------- helpers ---------- */
+let lenis = null;
+function initLenis() {
+  if (lenis) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !window.Lenis) return;
+  lenis = new window.Lenis({ duration: 1.15, smoothWheel: true });
+  const raf = (t) => { lenis.raf(t); requestAnimationFrame(raf); };
+  requestAnimationFrame(raf);
+}
+function scrollToId(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (lenis) lenis.scrollTo(el, { duration: 1.5 });
+  else el.scrollIntoView({ behavior: "smooth" });
+}
+const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const fmtDay = (d) => d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+const fmtMonth = (d) => d.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+const sameDay = (a, b) => a && b && a.toDateString() === b.toDateString();
+
+/* ---------- icons ---------- */
+const I = ({ path, size = 24, sw = 1.5, cls = "" }) => (
+  <svg className={cls} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">{path}</svg>
+);
+const IcMenu = (p) => <I {...p} path={<><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>} />;
+const IcX = (p) => <I {...p} path={<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>} />;
+const IcLeft = (p) => <I {...p} path={<polyline points="15 18 9 12 15 6"/>} />;
+const IcRight = (p) => <I {...p} path={<polyline points="9 18 15 12 9 6"/>} />;
+const IcInsta = (p) => <I {...p} path={<><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></>} />;
+const IcCheck = (p) => <I {...p} path={<><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>} />;
+
+/* ---------- motion helpers ---------- */
+const Reveal = ({ children, delay = 0, y = 32, className = "" }) => (
+  <motion.div className={className} initial={{ opacity: 0, y }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.9, delay, ease: EASE }}>
+    {children}
+  </motion.div>
+);
+const Mask = ({ children, delay = 0, className = "" }) => (
+  <span className={"block overflow-hidden " + className}>
+    <motion.span className="block" initial={{ y: "112%" }} animate={{ y: "0%" }} transition={{ duration: 1.1, delay, ease: EASE }}>
+      {children}
+    </motion.span>
+  </span>
+);
+const Eyebrow = ({ children, className = "" }) => (
+  <p className={"text-[11px] sm:text-xs uppercase tracking-swiss text-brass " + className}>{children}</p>
+);
+
+/* ---------- navbar ---------- */
+const LINKS = [
+  { label: "Services", id: "services" },
+  { label: "Barbers", id: "barbers" },
+  { label: "The Studio", id: "studio" },
+  { label: "Gallery", id: "gallery" },
+  { label: "Contact", id: "contact" },
+];
+const go = (e, id) => { e.preventDefault(); scrollToId(id); };
+
+function Navbar() {
+  const [scrolled, setScrolled] = useState(false);
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  return (
+    <React.Fragment>
+      <header data-testid="main-navbar" className={"fixed top-0 left-0 right-0 z-50 transition-all duration-500 " + (scrolled ? "bg-obsidian/85 backdrop-blur-xl border-b border-brass/20" : "bg-transparent border-b border-transparent")}>
+        <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-4 flex items-center justify-between">
+          <a href="#top" data-testid="nav-logo" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="font-display text-xl sm:text-2xl tracking-[0.18em] text-cream">
+            MASON <span className="text-brass">&</span> BLADE
+          </a>
+          <nav className="hidden lg:flex items-center gap-8">
+            {LINKS.map((l) => (
+              <a key={l.id} href={"#" + l.id} data-testid={"nav-" + l.id} onClick={(e) => go(e, l.id)} className="link-sweep text-[13px] uppercase tracking-[0.2em] text-beige hover:text-cream transition-colors">
+                {l.label}
+              </a>
+            ))}
+          </nav>
+          <div className="flex items-center gap-3">
+            <button data-testid="nav-book-now-button" onClick={() => scrollToId("booking")} className="hidden sm:inline-block text-[12px] uppercase tracking-[0.22em] border border-brass/40 text-brass px-6 py-3 hover:bg-brass hover:text-obsidian transition-colors duration-300">
+              Book Now
+            </button>
+            <button data-testid="mobile-menu-toggle" aria-label="Menu" onClick={() => setOpen(true)} className="lg:hidden text-cream p-2">
+              <IcMenu size={22} />
+            </button>
+          </div>
+        </div>
+      </header>
+      <AnimatePresence>
+        {open && (
+          <motion.div className="fixed inset-0 z-[80] bg-espresso flex flex-col" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4, ease: EASE }}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-brass/20">
+              <span className="font-display text-xl tracking-[0.18em] text-cream">MASON <span className="text-brass">&</span> BLADE</span>
+              <button data-testid="mobile-menu-close" aria-label="Close menu" onClick={() => setOpen(false)} className="text-cream p-2"><IcX size={24} /></button>
+            </div>
+            <nav className="flex-1 flex flex-col justify-center px-8 gap-2">
+              {[...LINKS, { label: "Book Now", id: "booking" }].map((l, i) => (
+                <motion.a key={l.id} href={"#" + l.id} data-testid={"mobile-nav-" + l.id}
+                  onClick={(e) => { setOpen(false); go(e, l.id); }}
+                  initial={{ opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.08 * i + 0.1, duration: 0.6, ease: EASE }}
+                  className="font-display text-4xl py-3 text-cream hover:text-brass transition-colors">
+                  {l.label}
+                </motion.a>
+              ))}
+            </nav>
+            <p className="px-8 pb-10 text-xs uppercase tracking-swiss text-beige/60">Zürich · Est. 2026</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </React.Fragment>
+  );
+}
+
+/* ---------- hero ---------- */
+const CLOSE_MAP = { 1: null, 2: "19:00", 3: "19:00", 4: "20:00", 5: "20:00", 6: "18:00", 0: null };
+
+function Hero() {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
+  const y = useTransform(scrollYProgress, [0, 1], ["0%", "22%"]);
+  const fade = useTransform(scrollYProgress, [0, 0.75], [1, 0]);
+  const close = CLOSE_MAP[new Date().getDay()];
+  const status = close ? "Open today until " + close + " · Walk-ins upon availability" : "Closed today · Book your chair online";
+  return (
+    <section ref={ref} data-testid="hero-section" id="top" className="relative h-[100svh] min-h-[620px] overflow-hidden">
+      <motion.div style={{ y }} className="absolute inset-0">
+        <img src={HERO_IMG} alt="Barber shaping a client's haircut in a premium leather chair" className="w-full h-full object-cover animate-kenburns" />
+      </motion.div>
+      <div className="absolute inset-0 bg-gradient-to-r from-obsidian/95 via-obsidian/60 to-obsidian/30" />
+      <div className="absolute inset-0 bg-gradient-to-t from-obsidian via-transparent to-obsidian/40" />
+      <motion.div style={{ opacity: fade }} className="relative z-10 h-full max-w-[1440px] mx-auto px-6 lg:px-12 flex flex-col justify-center">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 1 }} className="flex items-center gap-4 mb-8">
+          <span className="h-px w-12 bg-brass/70" />
+          <p data-testid="hero-badge" className="text-[11px] sm:text-xs uppercase tracking-swiss text-brass">Zürich · Est. 2026</p>
+        </motion.div>
+        <h1 className="font-display uppercase text-cream text-5xl sm:text-6xl lg:text-[5.2rem] leading-[1.04] tracking-tight max-w-5xl">
+          <Mask delay={0.15}>Crafted for</Mask>
+          <Mask delay={0.32}>your <em className="accent-italic">next look.</em></Mask>
+        </h1>
+        <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.75, duration: 0.9, ease: EASE }} className="mt-6 text-beige text-base sm:text-lg max-w-md">
+          Premium barbering in the heart of Zürich.
+        </motion.p>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9, duration: 0.9, ease: EASE }} className="mt-10 flex flex-col sm:flex-row gap-4">
+          <button data-testid="hero-book-cta" onClick={() => scrollToId("booking")} className="bg-brass text-obsidian text-[12px] uppercase tracking-[0.22em] px-8 py-4 hover:bg-brass-light transition-colors duration-300">
+            Book an Appointment
+          </button>
+          <button data-testid="hero-services-cta" onClick={() => scrollToId("services")} className="text-[12px] uppercase tracking-[0.22em] px-8 py-4 border border-cream/25 text-cream hover:border-brass hover:text-brass transition-colors duration-300">
+            Explore Services
+          </button>
+        </motion.div>
+      </motion.div>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.3, duration: 1 }} className="absolute bottom-0 left-0 right-0 z-10">
+        <div className="max-w-[1440px] mx-auto px-6 lg:px-12 pb-6 flex items-center justify-between">
+          <p data-testid="hero-status" className="text-[11px] uppercase tracking-[0.18em] text-beige/70">{status}</p>
+          <button data-testid="hero-scroll-indicator" onClick={() => scrollToId("manifesto")} aria-label="Scroll down" className="hidden sm:flex flex-col items-center gap-2 text-beige/70 hover:text-brass transition-colors">
+            <span className="text-[10px] uppercase tracking-swiss">Scroll</span>
+            <motion.span animate={{ y: [0, 6, 0] }} transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }} className="block h-8 w-px bg-brass/70" />
+          </button>
+        </div>
+      </motion.div>
+    </section>
+  );
+}
+
+/* ---------- manifesto ---------- */
+const CHAPTERS = [
+  { n: "01", title: "The Consultation", text: "An espresso, a quiet conversation, and an honest read of your hair — before a single blade is lifted." },
+  { n: "02", title: "The Craft", text: "Japanese steel, precision shears and straight razors. Slow hands, exact lines, no shortcuts." },
+  { n: "03", title: "The Finish", text: "Hot towel, cold towel, styling done properly. You leave sharper than you arrived — every time." },
+];
+function Manifesto() {
+  return (
+    <section id="manifesto" data-testid="manifesto-section" className="relative border-t border-brass/20 bg-obsidian">
+      <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-24 lg:py-32 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8">
+        <div className="lg:col-span-5 flex flex-col justify-between gap-10">
+          <Reveal>
+            <Eyebrow className="mb-6">The House Code</Eyebrow>
+            <h2 className="font-display text-cream text-4xl sm:text-5xl leading-[1.08] max-w-md">
+              A barbershop is not a salon. It is a <em className="accent-italic">ritual</em> of precision.
+            </h2>
+          </Reveal>
+          <Reveal delay={0.15} className="hidden lg:block">
+            <div className="frame-cut overflow-hidden max-w-sm">
+              <img src={MANIFESTO_IMG} alt="Barber instruments arranged on a workstation" className="w-full h-64 object-cover hover:scale-105 transition-transform duration-[1200ms] ease-out" />
+            </div>
+          </Reveal>
+        </div>
+        <div className="lg:col-span-7 flex flex-col justify-center">
+          {CHAPTERS.map((c, i) => (
+            <Reveal key={c.n} delay={i * 0.12}>
+              <div data-testid={"manifesto-chapter-" + c.n} className={"group flex gap-6 sm:gap-10 py-8 lg:py-10 border-t border-brass/20 px-2 sm:px-6 hover:bg-surface/50 transition-colors duration-500 " + (i === CHAPTERS.length - 1 ? "border-b border-brass/20" : "")}>
+                <span className="font-display text-brass text-2xl sm:text-3xl pt-1">{c.n}</span>
+                <div>
+                  <h3 className="font-display text-2xl sm:text-3xl text-cream mb-2 group-hover:text-brass transition-colors duration-300">{c.title}</h3>
+                  <p className="text-beige/80 text-sm sm:text-base leading-relaxed max-w-lg">{c.text}</p>
+                </div>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- marquee ---------- */
+const MARQUEE_ITEMS = ["Precision Cuts", "Sharp Fades", "Hot Towel Rituals", "Straight Razor", "Timeless Grooming", "Zürich · Est. 2026"];
+function Marquee() {
+  const row = (hidden) => (
+    <div aria-hidden={hidden || undefined} className="flex shrink-0 items-center">
+      {MARQUEE_ITEMS.map((item) => (
+        <span key={item} className="flex items-center">
+          <span className="font-display text-2xl sm:text-3xl uppercase tracking-[0.12em] text-cream/80 px-8 whitespace-nowrap">{item}</span>
+          <span className="h-1.5 w-1.5 rotate-45 bg-brass/70" />
+        </span>
+      ))}
+    </div>
+  );
+  return (
+    <div data-testid="marquee" className="border-y border-brass/20 bg-espresso py-6 overflow-hidden group">
+      <div className="flex w-max animate-marquee group-hover:[animation-play-state:paused]">
+        {row(false)}
+        {row(true)}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- services ---------- */
+function Services({ onBook }) {
+  return (
+    <section id="services" data-testid="services-section" className="bg-obsidian">
+      <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-24 lg:py-32">
+        <Reveal className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 mb-16">
+          <div>
+            <Eyebrow className="mb-5">01 · The Craft</Eyebrow>
+            <h2 className="font-display uppercase text-cream text-5xl sm:text-6xl tracking-tight">The <em className="accent-italic">Craft</em></h2>
+          </div>
+          <p className="text-beige/80 text-base sm:text-lg max-w-sm">Precision cuts. Sharp fades. Timeless grooming.</p>
+        </Reveal>
+        <div>
+          {SERVICES.map((s, i) => (
+            <Reveal key={s.id} delay={Math.min(i * 0.05, 0.3)} y={20}>
+              <div data-testid={"service-card-" + s.id} className="group relative border-t border-brass/20 last:border-b last:border-brass/20 px-2 sm:px-6 py-7 sm:py-8 grid grid-cols-[1fr_auto] lg:grid-cols-[3rem_1fr_1fr_auto] items-center gap-4 sm:gap-8 hover:bg-surface transition-colors duration-500">
+                <span className="hidden lg:block font-display text-brass/60 text-lg group-hover:text-brass transition-colors">{String(i + 1).padStart(2, "0")}</span>
+                <div>
+                  <h3 className="font-display text-2xl sm:text-3xl text-cream group-hover:text-brass transition-colors duration-300">{s.name}</h3>
+                  <p className="text-beige/70 text-sm mt-2 max-w-md">{s.desc}</p>
+                </div>
+                <div className="hidden lg:flex items-center gap-8 justify-end">
+                  <span className="text-[11px] uppercase tracking-[0.2em] text-beige/60 border border-cream/15 px-3 py-1.5">{s.duration}</span>
+                  <span className="font-display text-2xl text-brass whitespace-nowrap">{s.price}</span>
+                </div>
+                <div className="flex flex-col sm:flex-row items-end lg:items-center gap-3 sm:gap-5">
+                  <div className="lg:hidden text-right">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-beige/60">{s.duration}</p>
+                    <p className="font-display text-xl text-brass">{s.price}</p>
+                  </div>
+                  <button data-testid={"service-book-" + s.id} onClick={() => onBook(s.id)} className="text-[11px] uppercase tracking-[0.22em] border border-brass/40 text-brass px-5 py-2.5 hover:bg-brass hover:text-obsidian transition-colors duration-300">
+                    Book
+                  </button>
+                </div>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- signature ---------- */
+const RITUAL = [
+  "One-on-one style analysis & espresso welcome",
+  "Dual hot steam towels, Swiss pine essence",
+  "Precision scissor & Japanese straight-razor edging",
+  "Matte paste styling & bespoke cold towel finish",
+];
+function Signature({ onBook }) {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const y = useTransform(scrollYProgress, [0, 1], ["-6%", "6%"]);
+  return (
+    <section ref={ref} data-testid="signature-section" className="bg-espresso border-y border-brass/20 relative overflow-hidden">
+      <div className="max-w-[1440px] mx-auto grid grid-cols-1 lg:grid-cols-2">
+        <div className="relative min-h-[420px] lg:min-h-[720px] overflow-hidden">
+          <motion.img style={{ y }} src={SIGNATURE_IMG} alt="Barber preparing a hot towel beard treatment" className="absolute inset-0 w-full h-[112%] object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-espresso/70 via-transparent to-transparent lg:bg-gradient-to-r" />
+        </div>
+        <div className="px-6 lg:px-16 xl:px-24 py-20 lg:py-32 flex flex-col justify-center">
+          <Reveal>
+            <Eyebrow className="mb-6">Signature Ritual</Eyebrow>
+            <h2 className="font-display uppercase text-cream text-5xl sm:text-6xl tracking-tight mb-4">The <em className="accent-italic">Signature</em></h2>
+            <p className="font-display italic text-2xl sm:text-3xl text-beige mb-8">Haircut & Beard</p>
+          </Reveal>
+          <Reveal delay={0.1}>
+            <div className="flex items-center gap-6 mb-8">
+              <span data-testid="signature-price" className="font-display text-4xl text-brass">CHF 89</span>
+              <span className="h-px w-10 bg-brass/50" />
+              <span className="text-[12px] uppercase tracking-[0.25em] text-beige/80">60 min</span>
+            </div>
+            <p className="text-beige/85 leading-relaxed max-w-lg mb-10">
+              A complete grooming experience combining a precision haircut, detailed beard shaping and a clean finish.
+            </p>
+          </Reveal>
+          <Reveal delay={0.18}>
+            <ul className="space-y-4 mb-12">
+              {RITUAL.map((r, i) => (
+                <li key={r} className="flex gap-4 items-baseline">
+                  <span className="text-brass text-xs font-display">{String(i + 1).padStart(2, "0")}</span>
+                  <span className="text-sm sm:text-base text-cream/85">{r}</span>
+                </li>
+              ))}
+            </ul>
+            <button data-testid="signature-book-button" onClick={() => onBook("haircut-and-beard")} className="bg-brass text-obsidian text-[12px] uppercase tracking-[0.22em] px-8 py-4 hover:bg-brass-light transition-colors duration-300">
+              Reserve Signature Service
+            </button>
+          </Reveal>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- barbers ---------- */
+function Barbers() {
+  return (
+    <section id="barbers" data-testid="barbers-section" className="bg-obsidian">
+      <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-24 lg:py-32">
+        <Reveal className="mb-16">
+          <Eyebrow className="mb-5">03 · Barbers</Eyebrow>
+          <h2 className="font-display uppercase text-cream text-5xl sm:text-6xl tracking-tight max-w-3xl">
+            The people behind the <em className="accent-italic">chair</em>
+          </h2>
+        </Reveal>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
+          {BARBERS.map((b, i) => (
+            <Reveal key={b.id} delay={i * 0.12}>
+              <article data-testid={"barber-card-" + b.id} className="group relative overflow-hidden frame-cut bg-surface">
+                <div className="relative aspect-[3/4] overflow-hidden">
+                  <img src={b.img} alt={b.name + ", " + b.role} className="w-full h-full object-cover grayscale-[35%] group-hover:grayscale-0 group-hover:scale-[1.04] transition-all duration-[1200ms] ease-out" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/20 to-transparent" />
+                  <span className="absolute top-6 right-6 font-display text-brass/80 text-2xl">{String(i + 1).padStart(2, "0")}</span>
+                  <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
+                    <p className="text-[11px] uppercase tracking-[0.25em] text-brass mb-2">{b.role}</p>
+                    <h3 className="font-display text-3xl sm:text-4xl text-cream mb-3">{b.name}</h3>
+                    <span className="block h-px w-12 bg-brass/60 mb-4 transition-all duration-500 group-hover:w-24" />
+                    <p className="text-beige/85 text-sm leading-relaxed max-w-sm mb-4">{b.bio}</p>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-beige/60">{b.languages}</p>
+                  </div>
+                </div>
+              </article>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- studio (scroll-jacked horizontal gallery) ---------- */
+function Studio() {
+  const sectionRef = useRef(null);
+  const trackRef = useRef(null);
+  const [dist, setDist] = useState(0);
+  useEffect(() => {
+    const measure = () => {
+      if (trackRef.current) setDist(Math.max(0, trackRef.current.scrollWidth - window.innerWidth));
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end end"] });
+  const x = useTransform(scrollYProgress, [0, 1], [0, -dist]);
+  return (
+    <section id="studio" data-testid="studio-section" ref={sectionRef} className="bg-espresso border-y border-brass/20 relative" style={{ height: dist > 0 ? "calc(100vh + " + dist + "px)" : "130vh" }}>
+      <div className="sticky top-0 h-screen flex flex-col justify-center overflow-hidden">
+        <div className="max-w-[1440px] w-full mx-auto px-6 lg:px-12 pt-24 pb-8">
+          <Eyebrow className="mb-5">04 · The Studio</Eyebrow>
+          <h2 className="font-display uppercase text-cream text-4xl sm:text-5xl lg:text-6xl tracking-tight">
+            More than a <em className="accent-italic">haircut.</em>
+          </h2>
+          <p className="text-beige/80 mt-4 max-w-md text-sm sm:text-base">A space designed to slow down, switch off and leave sharper than you arrived.</p>
+        </div>
+        <motion.div ref={trackRef} style={{ x }} className="flex gap-6 lg:gap-10 px-6 lg:px-12 items-end w-max">
+          {STUDIO_SHOTS.map((s, i) => (
+            <figure key={s.title} data-testid={"studio-shot-" + (i + 1)} className="w-[80vw] sm:w-[52vw] lg:w-[34vw] shrink-0">
+              <div className="frame-cut overflow-hidden h-[42vh] lg:h-[52vh]">
+                <img src={s.img} alt={s.title} loading="lazy" className="w-full h-full object-cover hover:scale-[1.05] transition-transform duration-[1400ms] ease-out" />
+              </div>
+              <figcaption className="flex items-baseline gap-4 mt-4">
+                <span className="font-display text-brass text-lg">{String(i + 1).padStart(2, "0")}</span>
+                <div>
+                  <p className="font-display text-xl text-cream">{s.title}</p>
+                  <p className="text-beige/70 text-sm">{s.caption}</p>
+                </div>
+              </figcaption>
+            </figure>
+          ))}
+          <div className="shrink-0 w-[30vw] hidden lg:flex items-center justify-center">
+            <p className="font-display italic text-2xl text-beige/60 text-center px-8">“Every chair faces the light, never the wall.”</p>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- gallery ---------- */
+function Gallery() {
+  return (
+    <section id="gallery" data-testid="gallery-section" className="bg-obsidian">
+      <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-24 lg:py-32">
+        <Reveal className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 mb-14">
+          <div>
+            <Eyebrow className="mb-5">05 · Gallery</Eyebrow>
+            <h2 className="font-display uppercase text-cream text-5xl sm:text-6xl tracking-tight">The <em className="accent-italic">Editorial</em></h2>
+          </div>
+          <p className="text-[12px] uppercase tracking-[0.25em] text-beige/60">Curated atmosphere & craft · 9 photos</p>
+        </Reveal>
+        <div className="grid grid-cols-2 md:grid-cols-4 grid-flow-dense auto-rows-[140px] sm:auto-rows-[180px] lg:auto-rows-[215px] gap-3">
+          {GALLERY.map((g, i) => (
+            <Reveal key={g.title + i} delay={Math.min(i * 0.05, 0.3)} y={24} className={GALLERY_SPANS[i]}>
+              <figure data-testid={"gallery-item-" + (i + 1)} className="group relative w-full h-full overflow-hidden frame-cut bg-surface">
+                <img src={g.img} alt={g.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-[1200ms] ease-out" />
+                <figcaption className="absolute inset-0 flex items-end p-4 bg-gradient-to-t from-obsidian/85 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                  <span className="font-display text-cream text-lg">{g.title}</span>
+                </figcaption>
+              </figure>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- booking flow ---------- */
+const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+const slotsFor = (date) => {
+  if (!date) return TIME_SLOTS;
+  const d = date.getDay();
+  return d === 6 || d === 2 || d === 3 ? TIME_SLOTS.filter((t) => t !== "18:00") : TIME_SLOTS;
+};
+
+function StepLabel({ n, title, done }) {
+  return (
+    <div className="flex items-center gap-4 mb-5">
+      <span className={"font-display text-lg " + (done ? "text-brass" : "text-beige/40")}>{n}</span>
+      <span className="h-px w-8 bg-brass/40" />
+      <h3 className="text-[12px] uppercase tracking-[0.25em] text-cream">{title}</h3>
+      {done && <span className="text-[10px] uppercase tracking-[0.2em] text-brass ml-auto">Selected</span>}
+    </div>
+  );
+}
+function Field({ label, testid, value, onChange, placeholder, type = "text" }) {
+  return (
+    <label className="block">
+      <span className="block text-[11px] uppercase tracking-[0.2em] text-beige/60 mb-2">{label}</span>
+      <input data-testid={testid} type={type} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
+        className="w-full bg-transparent border-b border-cream/20 focus:border-brass outline-none py-3 text-cream placeholder:text-beige/30 transition-colors" />
+    </label>
+  );
+}
+
+function BookingFlow({ preselected }) {
+  const [service, setService] = useState(null);
+  const [barber, setBarber] = useState(null);
+  const [date, setDate] = useState(null);
+  const [time, setTime] = useState(null);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [monthOffset, setMonthOffset] = useState(0);
+  const [confirmed, setConfirmed] = useState(null);
+  const [toastMsg, setToastMsg] = useState(null);
+
+  useEffect(() => { if (preselected) setService(preselected); }, [preselected]);
+  useEffect(() => {
+    if (!toastMsg) return;
+    const t = setTimeout(() => setToastMsg(null), 3500);
+    return () => clearTimeout(t);
+  }, [toastMsg]);
+
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
+  const gridStart = new Date(monthStart);
+  gridStart.setDate(1 - ((monthStart.getDay() + 6) % 7));
+  const days = [];
+  for (let i = 0; i < 42; i++) days.push(new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + i));
+
+  const svc = SERVICES.find((s) => s.id === service);
+  const brb = BARBERS.find((b) => b.id === barber);
+  const canConfirm = service && barber && date && time && name.trim().length > 1 && phone.trim().length >= 7 && /\S+@\S+\.\S+/.test(email);
+
+  const confirm = () => {
+    if (!canConfirm) return;
+    const ref = "MB-8004-" + Math.floor(1000 + Math.random() * 9000);
+    setConfirmed({ ref });
+    setToastMsg("Chair reserved · " + ref);
+  };
+  const reset = () => {
+    setConfirmed(null);
+    setService(null); setBarber(null); setDate(null); setTime(null);
+    setName(""); setPhone(""); setEmail("");
+  };
+
+  const summary = [
+    ["Service", svc ? svc.name : "—"],
+    ["Barber", brb ? brb.name : barber === "any" ? "No preference" : "—"],
+    ["Date", date ? fmtDay(date) : "—"],
+    ["Time", time || "—"],
+  ];
+
+  return (
+    <section id="booking" data-testid="booking-section" className="bg-espresso border-y border-brass/20">
+      <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-24 lg:py-32">
+        <Reveal className="mb-14">
+          <Eyebrow className="mb-5">06 · Reservations</Eyebrow>
+          <h2 className="font-display uppercase text-cream text-5xl sm:text-6xl tracking-tight">
+            Your chair is <em className="accent-italic">waiting.</em>
+          </h2>
+        </Reveal>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          <div className="lg:col-span-7 space-y-14">
+            <Reveal>
+              <div data-testid="booking-step-service">
+                <StepLabel n="01" title="Choose service" done={!!service} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {SERVICES.map((s) => (
+                    <button key={s.id} data-testid={"booking-service-option-" + s.id} onClick={() => setService(s.id)}
+                      className={"flex items-center justify-between border px-5 py-4 text-left transition-colors duration-300 " + (service === s.id ? "border-brass bg-surface-2" : "border-cream/10 hover:border-brass/50")}>
+                      <span className="text-sm text-cream">{s.name}</span>
+                      <span className="font-display text-brass">{s.price}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </Reveal>
+            <Reveal>
+              <div data-testid="booking-step-barber">
+                <StepLabel n="02" title="Choose barber" done={!!barber} />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {[...BARBERS.map((b) => ({ id: b.id, name: b.name, sub: b.role })), { id: "any", name: "No preference", sub: "First available" }].map((b) => (
+                    <button key={b.id} data-testid={"booking-barber-option-" + b.id} onClick={() => setBarber(b.id)}
+                      className={"border px-5 py-4 text-left transition-colors duration-300 " + (barber === b.id ? "border-brass bg-surface-2" : "border-cream/10 hover:border-brass/50")}>
+                      <p className="text-sm text-cream">{b.name}</p>
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-beige/60 mt-1">{b.sub}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </Reveal>
+            <Reveal>
+              <div data-testid="booking-step-date">
+                <StepLabel n="03" title="Choose date" done={!!date} />
+                <div className="border border-cream/10 bg-surface p-6 max-w-md">
+                  <div className="flex items-center justify-between mb-6">
+                    <button data-testid="booking-calendar-prev" aria-label="Previous month" disabled={monthOffset === 0} onClick={() => setMonthOffset((m) => Math.max(0, m - 1))} className="text-beige disabled:opacity-25 hover:text-brass transition-colors p-1"><IcLeft size={18} /></button>
+                    <p className="text-[12px] uppercase tracking-[0.25em] text-cream">{fmtMonth(monthStart)}</p>
+                    <button data-testid="booking-calendar-next" aria-label="Next month" disabled={monthOffset === 2} onClick={() => setMonthOffset((m) => Math.min(2, m + 1))} className="text-beige disabled:opacity-25 hover:text-brass transition-colors p-1"><IcRight size={18} /></button>
+                  </div>
+                  <div className="grid grid-cols-7 gap-1 mb-2">
+                    {WEEKDAYS.map((d) => <span key={d} className="text-center text-[10px] uppercase tracking-[0.2em] text-beige/50 py-1">{d}</span>)}
+                  </div>
+                  <div className="grid grid-cols-7 gap-1">
+                    {days.map((day) => {
+                      const disabled = day < startOfDay(now) || [0, 1].includes(day.getDay()) || day.getMonth() !== monthStart.getMonth();
+                      const selected = sameDay(day, date);
+                      return (
+                        <button key={day.toISOString()} data-testid={"booking-calendar-day-" + day.toISOString().slice(0, 10)} disabled={disabled}
+                          onClick={() => { setDate(day); if (time && !slotsFor(day).includes(time)) setTime(null); }}
+                          className={"cal-day aspect-square text-sm transition-colors duration-200 " +
+                            (selected ? "bg-brass text-obsidian font-medium" : disabled ? "text-beige/20 cursor-not-allowed" : "text-cream/85 hover:bg-surface-2 hover:text-brass")}>
+                          {day.getDate()}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[11px] text-beige/50 mt-4 tracking-wide">Closed Mondays & Sundays</p>
+                </div>
+              </div>
+            </Reveal>
+            <Reveal>
+              <div data-testid="booking-step-time">
+                <StepLabel n="04" title="Choose time" done={!!time} />
+                <div className="flex flex-wrap gap-2">
+                  {(date ? slotsFor(date) : TIME_SLOTS).map((t) => (
+                    <button key={t} data-testid={"booking-time-slot-" + t} onClick={() => setTime(t)}
+                      className={"border px-5 py-3 text-sm cal-day transition-colors duration-300 " + (time === t ? "border-brass bg-brass text-obsidian" : "border-cream/10 text-cream hover:border-brass/50")}>
+                      {t}
+                    </button>
+                  ))}
+                  {!date && <p className="text-sm text-beige/60">Pick a date first to see available times.</p>}
+                </div>
+              </div>
+            </Reveal>
+            <Reveal>
+              <div data-testid="booking-step-confirm">
+                <StepLabel n="05" title="Your details" done={canConfirm} />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl">
+                  <Field label="Name" testid="booking-input-name" value={name} onChange={setName} placeholder="Your name" />
+                  <Field label="Phone" testid="booking-input-phone" value={phone} onChange={setPhone} placeholder="+41 79 …" type="tel" />
+                  <Field label="Email" testid="booking-input-email" value={email} onChange={setEmail} placeholder="you@example.ch" type="email" />
+                </div>
+              </div>
+            </Reveal>
+          </div>
+          <div className="lg:col-span-5">
+            <div data-testid="booking-summary-panel" className="lg:sticky lg:top-28 border border-cream/10 bg-surface p-8 lg:p-10">
+              <p className="text-[11px] uppercase tracking-swiss text-brass mb-8">Your appointment</p>
+              <dl className="space-y-5 mb-8">
+                {summary.map(([k, v]) => (
+                  <div key={k} data-testid={"booking-summary-" + k.toLowerCase()} className="flex items-baseline justify-between gap-4 border-b border-cream/10 pb-4">
+                    <dt className="text-[11px] uppercase tracking-[0.2em] text-beige/60">{k}</dt>
+                    <dd className="text-sm text-cream text-right">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+              <div className="flex items-baseline justify-between mb-2">
+                <span className="text-[11px] uppercase tracking-[0.2em] text-beige/60">Total</span>
+                <span className="font-display text-3xl text-brass">{svc ? svc.price : "—"}</span>
+              </div>
+              {svc && <p className="text-[11px] uppercase tracking-[0.2em] text-beige/50 mb-8 text-right">{svc.duration}</p>}
+              <p className="text-xs text-beige/60 mb-6">No payment today · Pay at the studio.</p>
+              <button data-testid="booking-confirm-button" disabled={!canConfirm} onClick={confirm}
+                className={"w-full text-[12px] uppercase tracking-[0.22em] px-8 py-4 transition-colors duration-300 " +
+                  (canConfirm ? "bg-brass text-obsidian hover:bg-brass-light" : "border border-cream/15 text-beige/40 cursor-not-allowed")}>
+                Confirm Appointment
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {confirmed && (
+          <motion.div data-testid="booking-confirmation-modal" className="fixed inset-0 z-[100] flex items-center justify-center px-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div className="absolute inset-0 bg-obsidian/85 backdrop-blur-sm" onClick={() => setConfirmed(null)} />
+            <motion.div initial={{ opacity: 0, y: 40, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20 }} transition={{ duration: 0.5, ease: EASE }}
+              className="relative bg-surface border border-brass/20 max-w-md w-full p-10 text-center">
+              <span className="inline-block text-brass mb-6"><IcCheck size={40} sw={1.25} /></span>
+              <p className="text-[11px] uppercase tracking-swiss text-brass mb-3">Appointment confirmed</p>
+              <p data-testid="confirmation-reference" className="font-display text-3xl text-cream mb-6">{confirmed.ref}</p>
+              <div className="text-sm text-beige/85 space-y-1 mb-8">
+                <p>{svc ? svc.name : ""} · {time}</p>
+                <p>{date ? fmtDay(date) : ""}</p>
+                <p className="text-beige/60 text-xs mt-3">Demo booking — nothing was actually reserved. In a live build, a confirmation would be sent to {email}.</p>
+              </div>
+              <button data-testid="confirmation-close-button" onClick={reset} className="w-full border border-brass/40 text-brass text-[12px] uppercase tracking-[0.22em] px-8 py-4 hover:bg-brass hover:text-obsidian transition-colors duration-300">
+                Done
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {toastMsg && (
+        <div data-testid="booking-toast" className="fixed bottom-6 right-6 z-[110] bg-surface border border-brass/30 text-cream text-sm px-5 py-4 shadow-2xl">
+          {toastMsg}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ---------- testimonials ---------- */
+function Testimonials() {
+  return (
+    <section data-testid="testimonials-section" className="bg-obsidian">
+      <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-24 lg:py-32">
+        <Reveal className="mb-14">
+          <Eyebrow className="mb-5">07 · Client Voices</Eyebrow>
+          <h2 className="font-display uppercase text-cream text-5xl sm:text-6xl tracking-tight">
+            The standard in <em className="accent-italic">Zürich</em>
+          </h2>
+        </Reveal>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
+          {TESTIMONIALS.map((t, i) => (
+            <Reveal key={t.name} delay={i * 0.12}>
+              <figure data-testid={"testimonial-card-" + (i + 1)} className="group border border-cream/10 bg-surface p-8 lg:p-10 h-full flex flex-col hover:border-brass/40 transition-colors duration-500">
+                <span className="font-display text-brass text-5xl leading-none mb-6">“</span>
+                <blockquote className="text-cream/90 leading-relaxed flex-1">{t.text}</blockquote>
+                <figcaption className="mt-8 pt-6 border-t border-cream/10">
+                  <p className="font-display text-xl text-cream">{t.name}</p>
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-beige/60 mt-1">{t.role}</p>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-brass mt-3">{t.service}</p>
+                </figcaption>
+              </figure>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- instagram ---------- */
+function InstagramFeed() {
+  return (
+    <section data-testid="instagram-section" className="bg-espresso border-y border-brass/20">
+      <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-24 lg:py-32">
+        <Reveal className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 mb-14">
+          <div>
+            <Eyebrow className="mb-5">08 · Follow the Craft</Eyebrow>
+            <h2 className="font-display uppercase text-cream text-5xl sm:text-6xl tracking-tight">
+              Follow the <em className="accent-italic">craft</em>
+            </h2>
+          </div>
+          <a data-testid="instagram-follow-cta" href="https://instagram.com/masonandblade.zurich" target="_blank" rel="noreferrer"
+            className="inline-flex items-center gap-3 text-[12px] uppercase tracking-[0.22em] border border-brass/40 text-brass px-6 py-3.5 hover:bg-brass hover:text-obsidian transition-colors duration-300 w-fit">
+            <IcInsta size={16} /> Follow @masonandblade.zurich
+          </a>
+        </Reveal>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {INSTAGRAM.map((t, i) => (
+            <Reveal key={t.caption} delay={Math.min(i * 0.06, 0.3)} y={24}>
+              <a data-testid={"instagram-tile-" + (i + 1)} href="https://instagram.com/masonandblade.zurich" target="_blank" rel="noreferrer" className="group relative block aspect-square overflow-hidden frame-cut">
+                <img src={t.img} alt={t.caption} loading="lazy" className="w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-[1200ms] ease-out" />
+                <span className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-obsidian/70 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                  <span className="text-brass"><IcInsta size={22} sw={1.25} /></span>
+                  <span className="text-xs uppercase tracking-[0.2em] text-cream px-6 text-center">{t.caption}</span>
+                </span>
+              </a>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- contact ---------- */
+const TODAY_IDX = (new Date().getDay() + 6) % 7;
+function ContactHours() {
+  return (
+    <section id="contact" data-testid="contact-section" className="bg-obsidian">
+      <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-24 lg:py-32">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-14 lg:gap-20 mb-16">
+          <Reveal>
+            <Eyebrow className="mb-5">09 · Location & Hours</Eyebrow>
+            <h2 className="font-display uppercase text-cream text-5xl sm:text-6xl tracking-tight mb-10">
+              Come <em className="accent-italic">see us.</em>
+            </h2>
+            <address className="not-italic space-y-1 mb-8">
+              <p className="font-display text-2xl text-cream">{CONTACT.studio}</p>
+              <p className="text-beige/85">{CONTACT.street}</p>
+              <p className="text-beige/85">{CONTACT.city}, {CONTACT.country}</p>
+            </address>
+            <div className="space-y-3 mb-10">
+              <a data-testid="contact-phone" href={CONTACT.phoneHref} className="block font-display text-2xl text-brass hover:text-brass-light transition-colors">{CONTACT.phone}</a>
+              <a data-testid="contact-email" href={"mailto:" + CONTACT.email} className="block text-sm text-beige/80 hover:text-cream transition-colors">{CONTACT.email}</a>
+            </div>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-beige/50 max-w-xs leading-relaxed">
+              Fictional concept address · demo phone number · no real location
+            </p>
+          </Reveal>
+          <Reveal delay={0.12}>
+            <div className="border border-cream/10 bg-surface p-8 lg:p-10 h-full">
+              <p className="text-[11px] uppercase tracking-swiss text-brass mb-8">Opening hours</p>
+              <ul>
+                {HOURS.map((h, i) => (
+                  <li key={h.days} data-testid={"hours-row-" + (i + 1)} className={"flex items-center justify-between py-3.5 border-b border-cream/10 last:border-0 " + (i === TODAY_IDX ? "text-cream" : "")}>
+                    <span className="text-sm flex items-center gap-3">
+                      {h.days}
+                      {i === TODAY_IDX && <span className="text-[9px] uppercase tracking-[0.2em] text-obsidian bg-brass px-2 py-0.5">Today</span>}
+                    </span>
+                    <span className={"text-sm cal-day " + (h.closed ? "text-beige/40" : "text-beige/85")}>{h.hours}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </Reveal>
+        </div>
+        <Reveal delay={0.1}>
+          <div data-testid="contact-map" className="relative border border-cream/10 bg-espresso overflow-hidden">
+            <svg viewBox="0 0 900 380" className="w-full h-[300px] sm:h-[360px]" role="img" aria-label="Stylized map of the studio area in Zürich">
+              <rect width="900" height="380" fill="#141210" />
+              <path d="M-20 300 C 150 260, 260 330, 430 290 S 720 330, 940 260" stroke="#221F1C" strokeWidth="26" fill="none" />
+              <path d="M-20 300 C 150 260, 260 330, 430 290 S 720 330, 940 260" stroke="#1A1715" strokeWidth="14" fill="none" />
+              <g stroke="#2A2521" strokeWidth="5" fill="none">
+                <path d="M120 -20 L 180 400" /><path d="M340 -20 L 300 400" /><path d="M560 -20 L 620 400" /><path d="M760 -20 L 720 400" />
+                <path d="M-20 80 L 920 60" /><path d="M-20 180 L 920 170" /><path d="M-20 250 L 920 255" />
+              </g>
+              <g stroke="#3A332C" strokeWidth="2.5" fill="none">
+                <path d="M60 120 L 480 140 L 640 80" /><path d="M700 200 L 860 120" /><path d="M200 220 L 420 320" />
+              </g>
+              <path d="M300 60 L 470 140" stroke="#C5A059" strokeWidth="3.5" strokeDasharray="7 6" fill="none" />
+              <text x="308" y="50" fill="#D6CEBF" fontSize="13" letterSpacing="3" fontFamily="Jost, sans-serif">ATELIERSTRASSE</text>
+              <g transform="translate(470,140)">
+                <circle r="22" fill="#C5A059" opacity="0.12"><animate attributeName="r" values="14;26;14" dur="2.6s" repeatCount="indefinite" /></circle>
+                <circle r="7" fill="#C5A059" />
+                <circle r="13" fill="none" stroke="#C5A059" strokeWidth="1.5" />
+              </g>
+              <text x="500" y="136" fill="#F5F2EB" fontSize="15" letterSpacing="4" fontFamily="Jost, sans-serif">MASON &amp; BLADE</text>
+              <text x="500" y="158" fill="#8d8578" fontSize="11" letterSpacing="3" fontFamily="Jost, sans-serif">12 ATELIERSTRASSE · 8004</text>
+              <g fill="#5b554b" fontSize="10" letterSpacing="2.5" fontFamily="Jost, sans-serif">
+                <text x="120" y="300">STAUFFACHER</text><text x="640" y="120">HELVETIAPLATZ</text><text x="760" y="330">KREIS 4</text><text x="60" y="60">SIHL</text>
+              </g>
+              <g transform="translate(850,40)" stroke="#5b554b" fill="none" strokeWidth="1.5">
+                <circle r="16" /><path d="M0 -10 L 4 6 L 0 2 L -4 6 Z" fill="#5b554b" stroke="none" /><text x="-3" y="-22" fill="#5b554b" fontSize="9" fontFamily="Jost, sans-serif" stroke="none">N</text>
+              </g>
+            </svg>
+            <p className="absolute bottom-4 right-5 text-[10px] uppercase tracking-[0.2em] text-beige/40">Stylized map · concept only · not a real location</p>
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- footer ---------- */
+function Footer() {
+  return (
+    <footer data-testid="footer" className="bg-obsidian border-t border-brass/20">
+      <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-16 lg:py-20">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-10 mb-14">
+          <div>
+            <p className="font-display text-4xl sm:text-5xl text-cream tracking-[0.08em]">MASON <span className="text-brass">&</span> BLADE</p>
+            <p className="text-beige/70 mt-3 text-sm sm:text-base">Premium barbering in Zürich.</p>
+          </div>
+          <nav className="flex flex-col sm:flex-row gap-4 sm:gap-8">
+            <a data-testid="footer-link-instagram" href="https://instagram.com/masonandblade.zurich" target="_blank" rel="noreferrer" className="link-sweep text-[12px] uppercase tracking-[0.22em] text-beige hover:text-cream transition-colors w-fit">Instagram</a>
+            {[{ label: "Services", id: "services" }, { label: "Book appointment", id: "booking" }, { label: "Contact", id: "contact" }].map((l) => (
+              <button key={l.id} data-testid={"footer-link-" + l.id} onClick={() => scrollToId(l.id)} className="link-sweep text-left text-[12px] uppercase tracking-[0.22em] text-beige hover:text-cream transition-colors w-fit">
+                {l.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+        <div className="border-t border-cream/10 pt-8 flex flex-col sm:flex-row justify-between gap-3">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-beige/45">Concept website — fictional brand created for portfolio demonstration.</p>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-beige/45">Zürich · Est. 2026</p>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+/* ---------- app ---------- */
+function App() {
+  const [preselected, setPreselected] = useState(null);
+  useEffect(() => {
+    initLenis();
+    return () => { if (lenis) { lenis.destroy(); lenis = null; } };
+  }, []);
+  const bookService = useCallback((id) => setPreselected(id), []);
+  return (
+    <div className="bg-obsidian text-cream font-sans">
+      <div className="grain-overlay" />
+      <Navbar />
+      <main>
+        <Hero />
+        <Manifesto />
+        <Marquee />
+        <Services onBook={bookService} />
+        <Signature onBook={bookService} />
+        <Barbers />
+        <Studio />
+        <Gallery />
+        <BookingFlow preselected={preselected} />
+        <Testimonials />
+        <InstagramFeed />
+        <ContactHours />
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
